@@ -89,6 +89,19 @@ void gotoSleep(uint32_t seconds) {
 }
 #endif
 
+class Data {
+    public:
+        Data(PM25_AQI_Data pmsData, SmartAirControl::BMEData bmeData) : pmsData(pmsData), bmeData(bmeData) {}
+        PM25_AQI_Data pmsData;
+        SmartAirControl::BMEData bmeData;
+};
+
+Data readSensors() {
+    PM25_AQI_Data pmsData = pms.read();
+    SmartAirControl::BMEData bmeData = bme.read();
+    return Data(pmsData, bmeData);
+}
+
 void setup() {
     Serial.begin(115200);
     while (!Serial)
@@ -119,52 +132,16 @@ void setup() {
 
     std::string uplinkPayload = RADIOLIB_LORAWAN_PAYLOAD;
     uint8_t fPort = 2;
-    #endif
-    
-    bme.startReading();
 
-    // do other work while waiting for the BME680 to finish
-    
-    // read PMS data
-    uint16_t pm2_5 = pms.getPm2_5();
-    uint16_t pm10 = pms.getPm10();
-    Serial.print(F("[APP] PMS PM2.5: "));
-    Serial.println(pm2_5);
-    Serial.print(F("[APP] PMS PM10: "));
-    Serial.println(pm10);
-
-    // delay for BME680 to finish reading
-    delay(1000); // adjust as needed
-
-    SmartAirControl::BMEData bmeData = bme.endReading();
-
-    Serial.print(F("[APP] BME680 Temperature: "));
-    Serial.print(bmeData.temperature);
-    Serial.println(F(" °C"));
-    Serial.print(F("[APP] BME680 Pressure: "));
-    Serial.print(bmeData.pressure);
-    Serial.println(F(" hPa"));
-    Serial.print(F("[APP] BME680 Humidity: "));
-    Serial.print(bmeData.humidity);
-    Serial.println(F(" %"));
-    Serial.print(F("[APP] BME680 Altitude: "));
-    Serial.print(bmeData.altitude);
-    Serial.println(F(" m"));
-    Serial.print(F("[APP] BME680 Gas Resistance: "));
-    Serial.print(bmeData.gasResistance);
-    Serial.println(F(" KOhm"));
-
-    #if USE_LORAWAN == 1
+    Data sensorData = readSensors();
 
     // Create a JSON object
     JsonDocument doc;
-    doc["temperature"] = bmeData.temperature;
-    doc["pressure"] = bmeData.pressure;
-    doc["humidity"] = bmeData.humidity;
-    doc["altitude"] = bmeData.altitude;
-    doc["gasResistance"] = bmeData.gasResistance;
-    doc["pm2_5"] = pm2_5;
-    doc["pm10"] = pm10;
+    doc["temperature"] = sensorData.bmeData.temperature;
+    doc["pressure"] = sensorData.bmeData.pressure;
+    doc["humidity"] = sensorData.bmeData.humidity;
+    doc["altitude"] = sensorData.bmeData.altitude;
+    doc["gasResistance"] = sensorData.bmeData.gasResistance;
 
     // Serialize to string
     String jsonString;
@@ -181,8 +158,10 @@ void setup() {
 void loop() {
     #if USE_LORAWAN == 1
     loRaWAN.loop();
+    #else
+    readSensors();
+    delay(5000);
     #endif
-    pms.read();
 }
 
 // Does it respond to a UBX-MON-VER request?

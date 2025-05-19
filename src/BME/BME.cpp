@@ -21,7 +21,7 @@ namespace SmartAirControl {
     void BME::setup() {
       valid = bme.begin();
       if (!valid) {
-          Serial.println(F("Could not find a valid BME680 sensor, check wiring!"));
+          Serial.println(F("[BME680] Could not find a valid BME680 sensor, check wiring!"));
       }
 
       // Set up oversampling and filter initialization
@@ -36,23 +36,21 @@ namespace SmartAirControl {
       return valid;
     }
 
-    void BME::startReading() {
+    BMEData BME::read() {
+      BMEData bmeData = BMEData();
       unsigned long endTime = bme.beginReading();
       if (endTime == 0) {
-        Serial.println(F("BME680 failed to begin reading!"));
-        return;
+        Serial.println(F("[BME680] Failed to begin reading!"));
+        return bmeData;;
       }
 
-      Serial.print(F("Reading started at "));
+      Serial.print(F("[BME680] Reading started at "));
       Serial.print(millis());
       Serial.print(F(" and will finish at "));
       Serial.println(endTime);
-    }
 
-    BMEData BME::endReading() {
-      BMEData bmeData = BMEData(0.0, 0.0, 0.0, 0.0, 0.0);
       if (!bme.endReading()) {
-        Serial.println(F("BME680 failed to complete reading!"));
+        Serial.println(F("[BME680] Failed to complete reading!"));
         return bmeData;
       }
 
@@ -61,6 +59,23 @@ namespace SmartAirControl {
       bmeData.humidity = bme.humidity;
       bmeData.altitude = bme.readAltitude(sealevelPressure_hPa);
       bmeData.gasResistance = bme.gas_resistance / 1000.0;
+
+      Serial.print(F("[BME680] Temperature: "));
+      Serial.print(bmeData.temperature);
+      Serial.println(F(" °C"));
+      Serial.print(F("[BME680] Pressure: "));
+      Serial.print(bmeData.pressure);
+      Serial.println(F(" hPa"));
+      Serial.print(F("[BME680] Humidity: "));
+      Serial.print(bmeData.humidity);
+      Serial.println(F(" %"));
+      Serial.print(F("[BME680] Altitude: "));
+      Serial.print(bmeData.altitude);
+      Serial.println(F(" m"));
+      Serial.print(F("[BME680] Gas Resistance: "));
+      Serial.print(bmeData.gasResistance);
+      Serial.println(F(" KOhm"));
+      
       return bmeData;
     }
 

@@ -1,23 +1,21 @@
 #include <Arduino.h>
 #include <HardwareSerial.h>
+#include <Adafruit_PM25AQI.h>
 
 namespace SmartAirControl {
 
     class PMS {
         public:
             PMS(int rxPin, int txPin, unsigned long serialBaud, SerialConfig serialConfig);
-            void read();
+            PM25_AQI_Data read();
             void setup();
-            uint16_t getPm2_5();
-            uint16_t getPm10();
-
         private:
-            uint16_t pm2_5;
-            uint16_t pm10;
+            PM25_AQI_Data data;
             HardwareSerial pmsSerial;
             unsigned long serialBaud;
             SerialConfig serialConfig;
             int rxPin;
             int txPin;
+            Adafruit_PM25AQI pms;
     };
 }

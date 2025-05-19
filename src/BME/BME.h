@@ -9,17 +9,12 @@
 namespace SmartAirControl {
     class BMEData {
         public:
-            BMEData(float temperature = 0.0,
-                    float pressure = 0.0,
-                    float humidity = 0.0,
-                    float altitude = 0.0,
-                    float gasResistance = 0.0) {
-                this->temperature = temperature;
-                this->pressure = pressure;
-                this->humidity = humidity;
-                this->altitude = altitude;
-                this->gasResistance = gasResistance;
-            }
+            BMEData()
+                : temperature(0.0),
+                  pressure(0.0),
+                  humidity(0.0),
+                  altitude(0.0),
+                  gasResistance(0.0) {}
 
             float temperature;  /** Temperature in degrees celsius */
             float pressure;     /** Pressure in hPa */
@@ -50,8 +45,7 @@ namespace SmartAirControl {
                 float seaLevelPressure_hPa);
 
             void setup();
-            void startReading();
-            BMEData endReading();
+            BMEData read();
             bool isValid();
     };
 
