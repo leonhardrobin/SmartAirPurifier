@@ -122,20 +122,13 @@ void adjustFanSpeed(Data data) {
     float tempScore = temp > 30 ? 1.0 : (temp > 25 ? 0.5 : 0.0); // higher temp = higher speed
 
     // Weighted sum (tune weights as needed)
-    float score = 0.4 * gasScore + 0.5 * pmNorm + 0.1 * tempScore;
+    float score = 0.2 * gasScore + 0.7 * pmNorm + 0.1 * tempScore;
 
-    // Map score to fan speed percent
-    int fanPercent = 0;
-    if (score < 0.3)
-        fanPercent = 30; // low speed
-    else if (score < 0.7)
-        fanPercent = 60; // medium speed
-    else
-        fanPercent = 100; // high speed
+    float fanPercent = score * 100;
 
     fan.setRpmPercent(fanPercent);
 
-    Serial.print(F("Adjusting fan speed to "));
+    Serial.print(F("[APP] Adjusting fan speed to "));
     Serial.print(fanPercent);
     Serial.println(F("% based on air quality and temperature."));
 }
