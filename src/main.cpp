@@ -108,7 +108,7 @@ Data readSensors() {
     return Data(pmsData, bmeData, FanRpm, FanPercent);
 }
 
-void adjustFanSpeed(Data data) {
+float adjustFanSpeed(Data data) {
     // Simple algorithm to adjust fan speed based on air quality and temperature
 
     float gas = data.bmeData.gasResistance;
@@ -133,6 +133,8 @@ void adjustFanSpeed(Data data) {
     Serial.print(F("[APP] Adjusting fan speed to "));
     Serial.print(fanPercent);
     Serial.println(F("% based on air quality and temperature."));
+
+    return score;
 }
 
 void setup() {
@@ -170,6 +172,7 @@ void setup() {
     uint8_t fPort = 2;
 
     Data sensorData = readSensors();
+    float score = adjustFanSpeed(sensorData);
 
     // Create a JSON object
     JsonDocument doc;
@@ -192,6 +195,7 @@ void setup() {
     doc["particles_100um"] = sensorData.pmsData.particles_100um;
     doc["fanRpm"] = sensorData.FanRpm;
     doc["fanPercent"] = sensorData.FanPercent;
+    doc["score"] = score;
 
 
     // Serialize to string
