@@ -3,24 +3,24 @@
 namespace SmartAirControl {
     class Fan {
         public:
-            Fan();
-            void loop();
+            Fan(int fanPwmPin, int tachPin);
             void setup();
             float getRpm();
             void setRpmPercent(int percent);
 
         private:
+            static const int N = 11;
             int fanPwmPin;
             int tachPin;
-            volatile int pulseCount;
-            volatile unsigned long lastPulse;
-            float rpmTable[11];
-            int dutyTable[11];
+            static volatile int pulseCount;
+            static volatile unsigned long lastPulse;
+            float rpmTable[N];
+            int dutyTable[N];
             float maxRpm;
             int currentPercent;
             unsigned long lastRpmTime;
 
             int getInterpolatedDuty(int percent);
-            void IRAM_ATTR countPulse();
+            static void IRAM_ATTR countPulse();
     };
 }

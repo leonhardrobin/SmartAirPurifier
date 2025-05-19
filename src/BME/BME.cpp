@@ -8,15 +8,16 @@ namespace SmartAirControl {
             u_int8_t IIRFilterSize,
             int gasHeaterTemp,
             int gasHeaterDuration,
-            float seaLevelPressure_hPa) {
-        this->tempOversampling = tempOversampling;
-        this->humidityOversampling = humidityOversampling;
-        this->pressureOversampling = pressureOversampling;
-        this->IIRFilterSize = IIRFilterSize;
-        this->gasHeaterTemp = gasHeaterTemp;
-        this->gasHeaterDuration = gasHeaterDuration;
-        this->sealevelPressure_hPa = seaLevelPressure_hPa;
-    }
+            float seaLevelPressure_hPa)
+          : bme(Adafruit_BME680()),
+          tempOversampling(tempOversampling),
+          humidityOversampling(humidityOversampling),
+          pressureOversampling(pressureOversampling),
+          IIRFilterSize(IIRFilterSize),
+          gasHeaterTemp(gasHeaterTemp),
+          gasHeaterDuration(gasHeaterDuration),
+          sealevelPressure_hPa(seaLevelPressure_hPa)
+            {}
 
     void BME::setup() {
       valid = bme.begin();

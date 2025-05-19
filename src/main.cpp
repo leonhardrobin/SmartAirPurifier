@@ -34,6 +34,7 @@ RTC_DATA_ATTR uint16_t bootCount = 0;
 #endif
 #include "BME/BME.h"
 #include "PMS/PMS.h"
+#include "Fan/Fan.h"
 
 #if USE_LORAWAN == 1
 static SmartAirControl::LoRaWAN<RADIOLIB_LORA_MODULE> loRaWAN(RADIOLIB_LORA_REGION,
@@ -56,6 +57,7 @@ static SmartAirControl::BME bme(BME680_OS_8X,
                     320, 150,
                     1013.25);
 static SmartAirControl::PMS pms(16, 17, 9600, SERIAL_8N1);
+static SmartAirControl::Fan fan(13, 12);
 
 #if USE_LORAWAN == 1
 // abbreviated version from the Arduino-ESP32 package, see
@@ -91,15 +93,17 @@ void gotoSleep(uint32_t seconds) {
 
 class Data {
     public:
-        Data(PM25_AQI_Data pmsData, SmartAirControl::BMEData bmeData) : pmsData(pmsData), bmeData(bmeData) {}
+        Data(PM25_AQI_Data pmsData, SmartAirControl::BMEData bmeData, float FanRpm) : pmsData(pmsData), bmeData(bmeData), FanRpm(FanRpm) {}
         PM25_AQI_Data pmsData;
         SmartAirControl::BMEData bmeData;
+        float FanRpm;
 };
 
 Data readSensors() {
     PM25_AQI_Data pmsData = pms.read();
     SmartAirControl::BMEData bmeData = bme.read();
-    return Data(pmsData, bmeData);
+    float FanRpm = fan.getRpm();
+    return Data(pmsData, bmeData, FanRpm);
 }
 
 void setup() {
@@ -120,6 +124,8 @@ void setup() {
     
     bme.setup();
     pms.setup();
+    fan.setup();
+    fan.setRpmPercent(100);
 
     #if USE_LORAWAN == 1
     loRaWAN.setDownlinkCB([](uint8_t fPort, uint8_t* downlinkPayload, std::size_t downlinkSize) {
@@ -159,7 +165,9 @@ void loop() {
     #if USE_LORAWAN == 1
     loRaWAN.loop();
     #else
-    readSensors();
+    Data data = readSensors();
+    Serial.println(F("[FAN] Fan RPM: "));
+    Serial.println(data.FanRpm);
     delay(5000);
     #endif
 }
