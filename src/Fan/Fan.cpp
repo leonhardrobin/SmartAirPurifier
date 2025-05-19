@@ -30,6 +30,10 @@ volatile unsigned long Fan::lastPulse = 0;
 
         return (count / 2.0) * 60.0;
     }
+
+    float Fan::getRpmPercent() {
+        return currentPercent;;
+    }
     
     void Fan::setRpmPercent(int percent) {
         if (percent < 0) percent = 0;

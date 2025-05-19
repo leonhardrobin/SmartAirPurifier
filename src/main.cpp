@@ -93,17 +93,19 @@ void gotoSleep(uint32_t seconds) {
 
 class Data {
     public:
-        Data(PM25_AQI_Data pmsData, SmartAirControl::BMEData bmeData, float FanRpm) : pmsData(pmsData), bmeData(bmeData), FanRpm(FanRpm) {}
+        Data(PM25_AQI_Data pmsData, SmartAirControl::BMEData bmeData, float FanRpm, float FanPercent) : pmsData(pmsData), bmeData(bmeData), FanRpm(FanRpm), FanPercent(FanPercent) {}
         PM25_AQI_Data pmsData;
         SmartAirControl::BMEData bmeData;
         float FanRpm;
+        float FanPercent;
 };
 
 Data readSensors() {
     PM25_AQI_Data pmsData = pms.read();
     SmartAirControl::BMEData bmeData = bme.read();
     float FanRpm = fan.getRpm();
-    return Data(pmsData, bmeData, FanRpm);
+    float FanPercent = fan.getRpmPercent();
+    return Data(pmsData, bmeData, FanRpm, FanPercent);
 }
 
 void adjustFanSpeed(Data data) {
@@ -152,7 +154,8 @@ void setup() {
     bme.setup();
     pms.setup();
     fan.setup();
-    fan.setRpmPercent(100);
+
+    delay(5000); // wait for sensors to warm up
 
     #if USE_LORAWAN == 1
     loRaWAN.setDownlinkCB([](uint8_t fPort, uint8_t* downlinkPayload, std::size_t downlinkSize) {
@@ -175,9 +178,26 @@ void setup() {
     doc["humidity"] = sensorData.bmeData.humidity;
     doc["altitude"] = sensorData.bmeData.altitude;
     doc["gasResistance"] = sensorData.bmeData.gasResistance;
+    doc["pm1.0_standard"] = sensorData.pmsData.pm10_standard;
+    doc["pm2.5_standard"] = sensorData.pmsData.pm25_standard;
+    doc["pm10.0_standard"] = sensorData.pmsData.pm100_standard;
+    doc["pm1.0_env"] = sensorData.pmsData.pm10_env;
+    doc["pm2.5_env"] = sensorData.pmsData.pm25_env;
+    doc["pm10.0_env"] = sensorData.pmsData.pm100_env;
+    doc["particles_03um"] = sensorData.pmsData.particles_03um;
+    doc["particles_05um"] = sensorData.pmsData.particles_05um;
+    doc["particles_10um"] = sensorData.pmsData.particles_10um;
+    doc["particles_25um"] = sensorData.pmsData.particles_25um;
+    doc["particles_50um"] = sensorData.pmsData.particles_50um;
+    doc["particles_100um"] = sensorData.pmsData.particles_100um;
+    doc["fanRpm"] = sensorData.FanRpm;
+    doc["fanPercent"] = sensorData.FanPercent;
+
 
     // Serialize to string
     String jsonString;
+    Serial.println(F("[APP] JSON: "));
+    Serial.println(jsonString.c_str());
     serializeJson(doc, jsonString);
 
     // Assign to uplink payload
@@ -194,9 +214,6 @@ void loop() {
     #else
     Data data = readSensors();
     adjustFanSpeed(data);
-    delay(5000);
+    delay(10000);
     #endif
 }
-
-// Does it respond to a UBX-MON-VER request?
-// uint8_t ubx_mon_ver[] = { 0xB5,0x62,0x0A,0x04,0x00,0x00,0x0E,0x34 };

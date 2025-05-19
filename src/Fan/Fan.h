@@ -7,6 +7,7 @@ namespace SmartAirControl {
             void setup();
             float getRpm();
             void setRpmPercent(int percent);
+            float getRpmPercent();
 
         private:
             static const int N = 11;
