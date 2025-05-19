@@ -47,6 +47,7 @@ namespace SmartAirControl {
             void setup();
             BMEData read();
             bool isValid();
+            void printSensorData(BMEData& bmeData);
     };
 
 }

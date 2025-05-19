@@ -9,6 +9,7 @@ namespace SmartAirControl {
             PMS(int rxPin, int txPin, unsigned long serialBaud, SerialConfig serialConfig);
             PM25_AQI_Data read();
             void setup();
+            void printSensorData();
         private:
             PM25_AQI_Data data;
             HardwareSerial pmsSerial;

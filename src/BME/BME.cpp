@@ -61,23 +61,29 @@ namespace SmartAirControl {
       bmeData.altitude = bme.readAltitude(sealevelPressure_hPa);
       bmeData.gasResistance = bme.gas_resistance / 1000.0;
 
-      Serial.print(F("[BME680] Temperature: "));
-      Serial.print(bmeData.temperature);
-      Serial.println(F(" °C"));
-      Serial.print(F("[BME680] Pressure: "));
-      Serial.print(bmeData.pressure);
-      Serial.println(F(" hPa"));
-      Serial.print(F("[BME680] Humidity: "));
-      Serial.print(bmeData.humidity);
-      Serial.println(F(" %"));
-      Serial.print(F("[BME680] Altitude: "));
-      Serial.print(bmeData.altitude);
-      Serial.println(F(" m"));
-      Serial.print(F("[BME680] Gas Resistance: "));
-      Serial.print(bmeData.gasResistance);
-      Serial.println(F(" KOhm"));
+      printSensorData(bmeData);
       
       return bmeData;
+    }
+
+    void BME::printSensorData(BMEData& bmeData) {
+      Serial.println(F("[BME680]"));
+      Serial.println(F("---------------------------------------"));
+      Serial.print(F("Temperature: "));
+      Serial.print(bmeData.temperature);
+      Serial.println(F(" °C"));
+      Serial.print(F("Pressure: "));
+      Serial.print(bmeData.pressure);
+      Serial.println(F(" hPa"));
+      Serial.print(F("Humidity: "));
+      Serial.print(bmeData.humidity);
+      Serial.println(F(" %"));
+      Serial.print(F("Altitude: "));
+      Serial.print(bmeData.altitude);
+      Serial.println(F(" m"));
+      Serial.print(F("Gas Resistance: "));
+      Serial.print(bmeData.gasResistance);
+      Serial.println(F(" KOhm"));
     }
 
 }

@@ -106,6 +106,40 @@ Data readSensors() {
     return Data(pmsData, bmeData, FanRpm);
 }
 
+void adjustFanSpeed(Data data) {
+    // Simple algorithm to adjust fan speed based on air quality and temperature
+
+    float gas = data.bmeData.gasResistance;
+    float pm1 = data.pmsData.particles_10um;
+    float pm25 = data.pmsData.particles_25um;
+    float pm10 = data.pmsData.particles_100um;
+    float temp = data.bmeData.temperature;
+
+    // Normalize sensor values (example thresholds, adjust as needed)
+    float gasScore = gas < 10000 ? 1.0 : (gas < 20000 ? 0.5 : 0.0); // lower gas resistance = worse air
+    float pmScore = (pm1 + pm25 + pm10) / 3.0;
+    float pmNorm = pmScore < 10 ? 0.0 : (pmScore < 35 ? 0.5 : 1.0); // higher PM = worse air
+    float tempScore = temp > 30 ? 1.0 : (temp > 25 ? 0.5 : 0.0); // higher temp = higher speed
+
+    // Weighted sum (tune weights as needed)
+    float score = 0.4 * gasScore + 0.5 * pmNorm + 0.1 * tempScore;
+
+    // Map score to fan speed percent
+    int fanPercent = 0;
+    if (score < 0.3)
+        fanPercent = 30; // low speed
+    else if (score < 0.7)
+        fanPercent = 60; // medium speed
+    else
+        fanPercent = 100; // high speed
+
+    fan.setRpmPercent(fanPercent);
+
+    Serial.print(F("Adjusting fan speed to "));
+    Serial.print(fanPercent);
+    Serial.println(F("% based on air quality and temperature."));
+}
+
 void setup() {
     Serial.begin(115200);
     while (!Serial)
@@ -166,8 +200,7 @@ void loop() {
     loRaWAN.loop();
     #else
     Data data = readSensors();
-    Serial.println(F("[FAN] Fan RPM: "));
-    Serial.println(data.FanRpm);
+    adjustFanSpeed(data);
     delay(5000);
     #endif
 }
