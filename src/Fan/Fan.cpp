@@ -22,7 +22,7 @@ volatile unsigned long Fan::lastPulse = 0;
         attachInterrupt(digitalPinToInterrupt(tachPin), countPulse, FALLING);
     }
 
-    float Fan::getRpm() {
+    int Fan::getRpm() {
         noInterrupts();
             int count = pulseCount;
             pulseCount = 0;

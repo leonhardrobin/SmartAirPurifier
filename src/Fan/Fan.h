@@ -5,7 +5,7 @@ namespace SmartAirControl {
         public:
             Fan(int fanPwmPin, int tachPin);
             void setup();
-            float getRpm();
+            int getRpm();
             void setRpmPercent(int percent);
             float getRpmPercent();
 
@@ -15,7 +15,7 @@ namespace SmartAirControl {
             int tachPin;
             static volatile int pulseCount;
             static volatile unsigned long lastPulse;
-            float rpmTable[N];
+            int rpmTable[N];
             int dutyTable[N];
             float maxRpm;
             int currentPercent;

@@ -77,17 +77,17 @@ void gotoSleep(uint32_t seconds) {
 
 class Data {
     public:
-        Data(PM25_AQI_Data pmsData, SmartAirControl::BMEData bmeData, float FanRpm, float FanPercent) : pmsData(pmsData), bmeData(bmeData), FanRpm(FanRpm), FanPercent(FanPercent) {}
+        Data(PM25_AQI_Data pmsData, SmartAirControl::BMEData bmeData, int FanRpm, float FanPercent) : pmsData(pmsData), bmeData(bmeData), FanRpm(FanRpm), FanPercent(FanPercent) {}
         PM25_AQI_Data pmsData;
         SmartAirControl::BMEData bmeData;
-        float FanRpm;
+        int FanRpm;
         float FanPercent;
 };
 
 Data readSensors() {
     PM25_AQI_Data pmsData = pms.read();
     SmartAirControl::BMEData bmeData = bme.read();
-    float FanRpm = fan.getRpm();
+    int FanRpm = fan.getRpm();
     float FanPercent = fan.getRpmPercent();
     return Data(pmsData, bmeData, FanRpm, FanPercent);
 }
@@ -167,13 +167,13 @@ void loop() {
         doc["p"] = sensorData.bmeData.pressure;
         doc["h"] = sensorData.bmeData.humidity;
         doc["g"] = sensorData.bmeData.gasResistance;
-        doc["p03"] = sensorData.pmsData.particles_03um;
+        /*doc["p03"] = sensorData.pmsData.particles_03um;
         doc["p05"] = sensorData.pmsData.particles_05um;
         doc["p10"] = sensorData.pmsData.particles_10um;
         doc["p25"] = sensorData.pmsData.particles_25um;
         doc["p50"] = sensorData.pmsData.particles_50um;
-        doc["p100"] = sensorData.pmsData.particles_100um;
-        doc["f"] = sensorData.FanPercent;
+        doc["p100"] = sensorData.pmsData.particles_100um; */
+        doc["rpm"] = sensorData.FanRpm;
         doc["s"] = score;
         
         
