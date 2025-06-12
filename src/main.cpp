@@ -60,34 +60,18 @@ static SmartAirControl::PMS pms(16, 17, 9600, SERIAL_8N1);
 static SmartAirControl::Fan fan(13, 12);
 
 #if USE_LORAWAN == 1
-// abbreviated version from the Arduino-ESP32 package, see
-// https://espressif-docs.readthedocs-hosted.com/projects/arduino-esp32/en/latest/api/deepsleep.html
-// for the complete set of options
-void print_wakeup_reason() {
-    esp_sleep_wakeup_cause_t wakeup_reason = esp_sleep_get_wakeup_cause();
-    if (wakeup_reason == ESP_SLEEP_WAKEUP_TIMER) {
-        Serial.println(F("Wake from sleep"));
-    } else {
-        Serial.print(F("Wake not caused by deep sleep: "));
-        Serial.println(wakeup_reason);
-    }
 
-    Serial.print(F("Boot count: "));
-    Serial.println(++bootCount); // increment before printing
-}
+unsigned long lastLoraTime = 0;
+uint32_t sleepTime = 0;
 
 void gotoSleep(uint32_t seconds) {
     loRaWAN.goToSleep();
+    
+    lastLoraTime = millis();
+    sleepTime = seconds * 1000;
 
-    Serial.println("[APP] Go to sleep");
+    Serial.println("[LoRaWAN] Go to sleep");
     Serial.println();
-
-    esp_sleep_enable_timer_wakeup(seconds * 1000UL * 1000UL); // function uses uS
-    esp_deep_sleep_start();
-
-    Serial.println(F("\n\n### Sleep failed, delay of 5 minutes & then restart ###\n"));
-    delay(5UL * 60UL * 1000UL);
-    ESP.restart();
 }
 #endif
 
@@ -109,8 +93,6 @@ Data readSensors() {
 }
 
 float adjustFanSpeed(Data data) {
-    // Simple algorithm to adjust fan speed based on air quality and temperature
-
     float gas = data.bmeData.gasResistance;
     float pm1 = data.pmsData.particles_10um;
     float pm25 = data.pmsData.particles_25um;
@@ -126,7 +108,7 @@ float adjustFanSpeed(Data data) {
     // Weighted sum (tune weights as needed)
     float score = 0.2 * gasScore + 0.7 * pmNorm + 0.1 * tempScore;
 
-    float fanPercent = score * 100;
+    float fanPercent = (1 - score) * 100;
 
     fan.setRpmPercent(fanPercent);
 
@@ -142,15 +124,20 @@ void setup() {
     while (!Serial)
         ;        // wait for serial to be initalised
     delay(2000); // give time to switch to the serial monitor
-
-    #if USE_LORAWAN == 1
-    print_wakeup_reason();
-    #endif
     
     Serial.println(F("Setup"));
 
     #if USE_LORAWAN == 1
     loRaWAN.setup(bootCount);
+
+    delay(1000); // give time to switch to the serial monitor
+
+    loRaWAN.setDownlinkCB([](uint8_t fPort, uint8_t* downlinkPayload, std::size_t downlinkSize) {
+            Serial.print(F("[APP] Payload: fPort="));
+            Serial.print(fPort);
+            Serial.print(", ");
+            SmartAirControl::arrayDump(downlinkPayload, downlinkSize);
+    });
     #endif
     
     bme.setup();
@@ -158,62 +145,53 @@ void setup() {
     fan.setup();
 
     delay(5000); // wait for sensors to warm up
-
-    #if USE_LORAWAN == 1
-    loRaWAN.setDownlinkCB([](uint8_t fPort, uint8_t* downlinkPayload, std::size_t downlinkSize) {
-        Serial.print(F("[APP] Payload: fPort="));
-        Serial.print(fPort);
-        Serial.print(", ");
-        SmartAirControl::arrayDump(downlinkPayload, downlinkSize);
-    });
-    Serial.println(F("[APP] Aquire data and construct LoRaWAN uplink"));
-
-    std::string uplinkPayload = RADIOLIB_LORAWAN_PAYLOAD;
-    uint8_t fPort = 2;
-
-    Data sensorData = readSensors();
-    float score = adjustFanSpeed(sensorData);
-
-    // Create a JSON object
-    JsonDocument doc;
-    doc["temperature"] = sensorData.bmeData.temperature;
-    doc["pressure"] = sensorData.bmeData.pressure;
-    doc["humidity"] = sensorData.bmeData.humidity;
-    doc["altitude"] = sensorData.bmeData.altitude;
-    doc["gasResistance"] = sensorData.bmeData.gasResistance;
-    doc["pm1.0_standard"] = sensorData.pmsData.pm10_standard;
-    doc["pm2.5_standard"] = sensorData.pmsData.pm25_standard;
-    doc["pm10.0_standard"] = sensorData.pmsData.pm100_standard;
-    doc["pm1.0_env"] = sensorData.pmsData.pm10_env;
-    doc["pm2.5_env"] = sensorData.pmsData.pm25_env;
-    doc["pm10.0_env"] = sensorData.pmsData.pm100_env;
-    doc["particles_03um"] = sensorData.pmsData.particles_03um;
-    doc["particles_05um"] = sensorData.pmsData.particles_05um;
-    doc["particles_10um"] = sensorData.pmsData.particles_10um;
-    doc["particles_25um"] = sensorData.pmsData.particles_25um;
-    doc["particles_50um"] = sensorData.pmsData.particles_50um;
-    doc["particles_100um"] = sensorData.pmsData.particles_100um;
-    doc["fanRpm"] = sensorData.FanRpm;
-    doc["fanPercent"] = sensorData.FanPercent;
-    doc["score"] = score;
-
-
-    // Serialize to string
-    String jsonString;
-    Serial.println(F("[APP] JSON: "));
-    Serial.println(jsonString.c_str());
-    serializeJson(doc, jsonString);
-
-    // Assign to uplink payload
-    uplinkPayload = std::string(jsonString.c_str());
-    
-
-    loRaWAN.setUplinkPayload(fPort, uplinkPayload);
-    #endif
 }
 
 void loop() {
+
     #if USE_LORAWAN == 1
+
+    if (millis() - lastLoraTime > 10000) {
+        Serial.println(F("[APP] Aquire data and construct LoRaWAN uplink"));
+        
+        std::string uplinkPayload = RADIOLIB_LORAWAN_PAYLOAD;
+        uint8_t fPort = 2;
+        
+        Data sensorData = readSensors();
+        delay(1000); // wait for sensors to stabilize
+        float score = adjustFanSpeed(sensorData);
+        
+        // Create a JSON object
+        JsonDocument doc;
+        doc["t"] = sensorData.bmeData.temperature;
+        doc["p"] = sensorData.bmeData.pressure;
+        doc["h"] = sensorData.bmeData.humidity;
+        doc["g"] = sensorData.bmeData.gasResistance;
+        doc["p03"] = sensorData.pmsData.particles_03um;
+        doc["p05"] = sensorData.pmsData.particles_05um;
+        doc["p10"] = sensorData.pmsData.particles_10um;
+        doc["p25"] = sensorData.pmsData.particles_25um;
+        doc["p50"] = sensorData.pmsData.particles_50um;
+        doc["p100"] = sensorData.pmsData.particles_100um;
+        doc["f"] = sensorData.FanPercent;
+        doc["s"] = score;
+        
+        
+        // Serialize to string
+        String jsonString;
+        serializeJson(doc, jsonString);
+        
+        // Assign to uplink payload
+        uplinkPayload = std::string(jsonString.c_str());
+
+        // Prit the size of the payload in bytes
+        Serial.print(F("[APP] Payload size: "));
+        Serial.print(uplinkPayload.length());
+        
+        loRaWAN.setUplinkPayload(fPort, uplinkPayload);
+
+        
+    }
     loRaWAN.loop();
     #else
     Data data = readSensors();

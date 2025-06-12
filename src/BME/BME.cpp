@@ -42,7 +42,7 @@ namespace SmartAirControl {
       unsigned long endTime = bme.beginReading();
       if (endTime == 0) {
         Serial.println(F("[BME680] Failed to begin reading!"));
-        return bmeData;;
+        return bmeData;
       }
 
       Serial.print(F("[BME680] Reading started at "));
